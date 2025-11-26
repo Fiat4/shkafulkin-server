@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Платформа управления заказами</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Модальное окно аутентификации -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <h2>Доступ к редактированию</h2>
+            <p>Введите пароль для доступа к редактированию заказов:</p>
+            <input type="password" id="authPassword" class="auth-input" placeholder="Пароль">
+            <div class="auth-buttons">
+                <button type="button" class="btn btn-primary" id="authSubmit">Войти</button>
+            </div>
+            <div id="authError" class="auth-error" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display: none;">
+        <header>
+            <h1>Платформа управления заказами</h1>
+            <div class="current-date" id="currentDate"></div>
+        </header>
+
+        <div class="form-section">
+            <div class="form-header">
+                <h2>Добавить новый заказ</h2>
+                <div class="import-section">
+                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" class="file-input">
+                    <button type="button" class="btn btn-secondary" id="importExcelBtn">Импорт из Excel</button>
+                </div>
+            </div>
+            <form id="orderForm">
+                <div class="form-group">
+                    <label for="orderNumber">Номер заказа:</label>
+                    <input type="number" id="orderNumber" required placeholder="Введите номер заказа">
+                </div>
+                
+                <div class="form-group">
+                    <label for="customerName">Имя исполнителя:</label>
+                    <input type="text" id="customerName" required placeholder="Введите имя">
+                </div>
+                
+                <div class="form-group">
+                    <label for="orderDate">Дата заказа:</label>
+                    <input type="date" id="orderDate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="orderStatus">Статус:</label>
+                    <select id="orderStatus">
+                        <option value="">Выберите статус (по умолчанию: В работе)</option>
+                        <option value="в работе">В работе</option>
+                        <option value="готов">Готов</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Количество квадратов (м²):</label>
+                    <div class="square-inputs">
+                        <div class="square-input-item">
+                            <label for="squarePaint">Краска:</label>
+                            <input type="number" id="squarePaint" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="square-input-item">
+                            <label for="squareShpon">Шпон:</label>
+                            <input type="number" id="squareShpon" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="square-input-item">
+                            <label for="squarePlyonka">Плёнка:</label>
+                            <input type="number" id="squarePlyonka" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Добавить заказ</button>
+            </form>
+        </div>
+
+        <div class="statistics-section">
+            <h2>Статистика по заказам</h2>
+            <div class="statistics-controls">
+                <div class="calendar-wrapper">
+                    <div id="calendarContainer" class="calendar-container">
+                        <div class="calendar-header">
+                            <button type="button" class="calendar-nav-btn" id="prevMonth">‹</button>
+                            <div class="calendar-month-year">
+                                <span class="calendar-month-clickable" id="calendarMonth">Январь</span>
+                                <span class="calendar-year-clickable" id="calendarYear">2024</span>
+                            </div>
+                            <button type="button" class="calendar-nav-btn" id="nextMonth">›</button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <div>Пн</div>
+                            <div>Вт</div>
+                            <div>Ср</div>
+                            <div>Чт</div>
+                            <div>Пт</div>
+                            <div>Сб</div>
+                            <div>Вс</div>
+                        </div>
+                        <div class="calendar-days" id="calendarDays"></div>
+                        <div class="calendar-selected-range" id="selectedRange"></div>
+                    </div>
+                    
+                    <!-- Виджет выбора месяцев -->
+                    <div id="monthPicker" class="month-picker" style="display: none;">
+                        <div class="picker-header">
+                            <button type="button" class="calendar-back-btn" id="backToDaysFromMonths" title="Вернуться к дням">← Дни</button>
+                            <button type="button" class="calendar-nav-btn" id="prevYear">‹</button>
+                            <div class="picker-title picker-title-clickable" id="pickerYear">2024</div>
+                            <button type="button" class="calendar-nav-btn" id="nextYear">›</button>
+                        </div>
+                        <div class="picker-grid" id="monthPickerGrid"></div>
+                        <div class="calendar-selected-range" id="monthSelectedRange"></div>
+                    </div>
+                    
+                    <!-- Виджет выбора годов -->
+                    <div id="yearPicker" class="year-picker" style="display: none;">
+                        <div class="picker-header">
+                            <button type="button" class="calendar-back-btn" id="backToMonthsFromYears" title="Вернуться к месяцам">← Месяцы</button>
+                            <button type="button" class="calendar-nav-btn" id="prevYearRange">‹</button>
+                            <div class="picker-title picker-title-clickable" id="yearRangeTitle">2020-2030</div>
+                            <button type="button" class="calendar-nav-btn" id="nextYearRange">›</button>
+                        </div>
+                        <div class="picker-grid" id="yearPickerGrid"></div>
+                        <div class="calendar-selected-range" id="yearSelectedRange"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="statisticsContent" class="statistics-content">
+                <div class="stat-item">
+                    <div class="stat-label">Количество заказов:</div>
+                    <div class="stat-value" id="ordersCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Общий квадрат (м²):</div>
+                    <div class="stat-value" id="totalSquares">0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Краска (м²):</div>
+                    <div class="stat-value" id="totalPaint">0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Шпон (м²):</div>
+                    <div class="stat-value" id="totalShpon">0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Плёнка (м²):</div>
+                    <div class="stat-value" id="totalPlyonka">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="orders-section">
+            <div class="orders-header">
+                <h2>Список заказов</h2>
+                <button type="button" class="btn btn-danger" id="clearAllBtn">Очистить всё</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Поиск по номеру, имени или статусу...">
+            </div>
+            <div id="ordersList" class="orders-list">
+                <!-- Заказы будут добавлены сюда динамически -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK для Realtime Database -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAX9VuMmBADg8ZFrLuVlTl5T704VqVrff8",
+            authDomain: "server-shkaful.firebaseapp.com",
+            databaseURL: "https://server-shkaful-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "server-shkaful",
+            storageBucket: "server-shkaful.firebasestorage.app",
+            messagingSenderId: "348321104642",
+            appId: "1:348321104642:web:bcbb2f5ef879b4c192b81b",
+            measurementId: "G-1QGT7G301S"
+        };
+        
+        // Инициализация Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        // Экспортируем функции в глобальную область видимости для использования в script.js
+        window.firebaseDatabase = database;
+        window.firebaseRef = ref;
+        window.firebaseSet = set;
+        window.firebaseOnValue = onValue;
+        window.firebaseRemove = remove;
+        window.firebaseUpdate = update;
+        
+        console.log('✅ Firebase инициализирован');
+        console.log('Database URL:', firebaseConfig.databaseURL);
+        
+        // Уведомляем, что Firebase готов
+        window.dispatchEvent(new Event('firebaseReady'));
+    </script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
+
