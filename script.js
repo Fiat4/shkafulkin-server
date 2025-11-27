@@ -1,11 +1,7 @@
-// Хранение заказов в localStorage
 let orders = JSON.parse(localStorage.getItem('orders')) || [];
 let editingOrderId = null;
 
-// Переменная для предотвращения циклов синхронизации
 let isSyncing = false;
-
-// Состояние календаря
 let calendarState = {
     currentMonth: new Date().getMonth(),
     currentYear: new Date().getFullYear(),
@@ -15,32 +11,27 @@ let calendarState = {
     endMonth: null,
     startYear: null,
     endYear: null,
-    view: 'days' // 'days', 'months', 'years'
+    view: 'days'
 };
 
-// Элементы DOM
 const orderForm = document.getElementById('orderForm');
 const ordersList = document.getElementById('ordersList');
 const searchInput = document.getElementById('searchInput');
 
-// Форматирование даты для отображения
 function formatDate(dateString) {
     if (!dateString) return '';
-    // Если дата в формате YYYY-MM-DD (из input type="date")
     if (dateString.includes('-')) {
         const [year, month, day] = dateString.split('-');
         return `${day}.${month}.${year}`;
     }
-    // Если дата в формате ISO или другом
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString; // Если невалидная дата, вернуть как есть
+    if (isNaN(date.getTime())) return dateString;
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}.${month}.${year}`;
 }
 
-// Отображение текущей даты
 function updateCurrentDate() {
     const currentDateElement = document.getElementById('currentDate');
     if (currentDateElement) {
@@ -56,7 +47,6 @@ function updateCurrentDate() {
     }
 }
 
-// Установка текущей даты по умолчанию
 function setDefaultDate() {
     const orderDateInput = document.getElementById('orderDate');
     if (orderDateInput && !orderDateInput.value) {
@@ -68,13 +58,10 @@ function setDefaultDate() {
     }
 }
 
-// Расчет статистики
 function calculateStatistics(filteredOrders) {
     let totalShpon = 0;
     let totalPlyonka = 0;
     let totalPaint = 0;
-    
-    // Учитываем квадраты только для заказов со статусом "готов"
     filteredOrders.forEach(order => {
         if (order.status === 'готов' && order.squares) {
             if (order.squares.shpon) totalShpon += order.squares.shpon;
@@ -94,7 +81,6 @@ function calculateStatistics(filteredOrders) {
     };
 }
 
-// Отображение статистики
 function displayStatistics(stats) {
     document.getElementById('ordersCount').textContent = stats.count;
     document.getElementById('totalSquares').textContent = stats.totalSquares;
@@ -103,7 +89,6 @@ function displayStatistics(stats) {
     document.getElementById('totalPaint').textContent = stats.totalPaint;
 }
 
-// Фильтрация заказов по интервалу дат
 function filterOrdersByDateRange(fromDate, toDate) {
     if (!fromDate || !toDate) return orders;
     return orders.filter(order => {
@@ -112,17 +97,15 @@ function filterOrdersByDateRange(fromDate, toDate) {
     });
 }
 
-// Фильтрация заказов по интервалу месяцев
 function filterOrdersByMonthRange(fromMonth, toMonth) {
     if (!fromMonth || !toMonth) return orders;
     return orders.filter(order => {
         if (!order.orderDate) return false;
-        const orderMonth = order.orderDate.substring(0, 7); // YYYY-MM
+        const orderMonth = order.orderDate.substring(0, 7);
         return orderMonth >= fromMonth && orderMonth <= toMonth;
     });
 }
 
-// Форматирование даты в YYYY-MM-DD
 function formatDateForInput(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -130,14 +113,12 @@ function formatDateForInput(date) {
     return `${year}-${month}-${day}`;
 }
 
-// Получение названия месяца
 function getMonthName(month) {
     const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     return months[month];
 }
 
-// Отрисовка календаря
 function renderCalendar() {
     const calendarDays = document.getElementById('calendarDays');
     const calendarMonth = document.getElementById('calendarMonth');
@@ -147,8 +128,6 @@ function renderCalendar() {
     const yearPicker = document.getElementById('yearPicker');
     
     if (!calendarDays) return;
-    
-    // Показываем нужный вид
     if (calendarState.view === 'days') {
         if (calendarContainer) calendarContainer.style.display = 'block';
         if (monthPicker) monthPicker.style.display = 'none';
@@ -173,7 +152,6 @@ function renderCalendar() {
     }
 }
 
-// Отрисовка дней
 function renderDays() {
     const calendarDays = document.getElementById('calendarDays');
     if (!calendarDays) return;
@@ -181,18 +159,15 @@ function renderDays() {
     const firstDay = new Date(calendarState.currentYear, calendarState.currentMonth, 1);
     const lastDay = new Date(calendarState.currentYear, calendarState.currentMonth + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = (firstDay.getDay() + 6) % 7; // Понедельник = 0
+    const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
     
     calendarDays.innerHTML = '';
-    
-    // Пустые ячейки для дней предыдущего месяца
     for (let i = 0; i < startingDayOfWeek; i++) {
         const emptyDay = document.createElement('div');
         emptyDay.className = 'calendar-day empty';
         calendarDays.appendChild(emptyDay);
     }
     
-    // Дни текущего месяца
     for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = document.createElement('div');
         dayElement.className = 'calendar-day';
@@ -200,8 +175,6 @@ function renderDays() {
         
         const currentDate = new Date(calendarState.currentYear, calendarState.currentMonth, day);
         const dateString = formatDateForInput(currentDate);
-        
-        // Проверка, находится ли дата в выбранном диапазоне
         if (calendarState.startDate && calendarState.endDate) {
             if (dateString >= calendarState.startDate && dateString <= calendarState.endDate) {
                 dayElement.classList.add('in-range');
@@ -223,14 +196,11 @@ function renderDays() {
     updateSelectedRangeDisplay();
 }
 
-// Выбор даты
 function selectDate(dateString) {
     if (!calendarState.startDate || (calendarState.startDate && calendarState.endDate)) {
-        // Начинаем новый выбор
         calendarState.startDate = dateString;
         calendarState.endDate = null;
     } else {
-        // Завершаем выбор диапазона
         if (dateString < calendarState.startDate) {
             calendarState.endDate = calendarState.startDate;
             calendarState.startDate = dateString;
@@ -242,7 +212,6 @@ function selectDate(dateString) {
     renderDays();
 }
 
-// Отрисовка месяцев
 function renderMonths() {
     const monthPickerGrid = document.getElementById('monthPickerGrid');
     const pickerYear = document.getElementById('pickerYear');
@@ -261,8 +230,6 @@ function renderMonths() {
         monthElement.textContent = monthName;
         
         const monthString = `${calendarState.currentYear}-${String(index + 1).padStart(2, '0')}`;
-        
-        // Проверка, находится ли месяц в выбранном диапазоне
         if (calendarState.startMonth && calendarState.endMonth) {
             if (monthString >= calendarState.startMonth && monthString <= calendarState.endMonth) {
                 monthElement.classList.add('in-range');
@@ -284,7 +251,6 @@ function renderMonths() {
     updateMonthSelectedRangeDisplay();
 }
 
-// Выбор месяца
 function selectMonth(monthString) {
     if (!calendarState.startMonth || (calendarState.startMonth && calendarState.endMonth)) {
         calendarState.startMonth = monthString;
@@ -301,7 +267,6 @@ function selectMonth(monthString) {
     renderMonths();
 }
 
-// Отрисовка годов
 function renderYears() {
     const yearPickerGrid = document.getElementById('yearPickerGrid');
     const yearRangeTitle = document.getElementById('yearRangeTitle');
@@ -320,8 +285,6 @@ function renderYears() {
         yearElement.textContent = year;
         
         const yearString = String(year);
-        
-        // Проверка, находится ли год в выбранном диапазоне
         if (calendarState.startYear && calendarState.endYear) {
             if (yearString >= calendarState.startYear && yearString <= calendarState.endYear) {
                 yearElement.classList.add('in-range');
@@ -343,7 +306,6 @@ function renderYears() {
     updateYearSelectedRangeDisplay();
 }
 
-// Выбор года
 function selectYear(yearString) {
     if (!calendarState.startYear || (calendarState.startYear && calendarState.endYear)) {
         calendarState.startYear = yearString;
@@ -360,7 +322,6 @@ function selectYear(yearString) {
     renderYears();
 }
 
-// Обновление отображения выбранного диапазона
 function updateSelectedRangeDisplay() {
     const selectedRange = document.getElementById('selectedRange');
     if (!selectedRange) return;
@@ -379,7 +340,6 @@ function updateSelectedRangeDisplay() {
     }
 }
 
-// Обновление отображения выбранного диапазона месяцев
 function updateMonthSelectedRangeDisplay() {
     const monthSelectedRange = document.getElementById('monthSelectedRange');
     if (!monthSelectedRange) return;
@@ -398,7 +358,6 @@ function updateMonthSelectedRangeDisplay() {
     }
 }
 
-// Обновление отображения выбранного диапазона годов
 function updateYearSelectedRangeDisplay() {
     const yearSelectedRange = document.getElementById('yearSelectedRange');
     if (!yearSelectedRange) return;
@@ -414,7 +373,6 @@ function updateYearSelectedRangeDisplay() {
     }
 }
 
-// Форматирование месяца для отображения
 function formatMonth(monthString) {
     if (!monthString) return '';
     const [year, month] = monthString.split('-');
@@ -423,7 +381,6 @@ function formatMonth(monthString) {
     return `${monthNames[parseInt(month) - 1]} ${year}`;
 }
 
-// Переключение месяца
 function changeMonth(direction) {
     if (calendarState.view === 'days') {
         calendarState.currentMonth += direction;
@@ -444,30 +401,24 @@ function changeMonth(direction) {
     }
 }
 
-// Переключение года
 function changeYear(direction) {
     calendarState.currentYear += direction;
     renderMonths();
 }
 
-// Переключение диапазона годов
 function changeYearRange(direction) {
     calendarState.currentYear += direction * 10;
     renderYears();
 }
 
 
-// Обновление статистики
 function updateStatistics() {
     let filteredOrders = orders;
-    
-    // Проверяем выбранные диапазоны
     if (calendarState.startDate && calendarState.endDate) {
         filteredOrders = filterOrdersByDateRange(calendarState.startDate, calendarState.endDate);
     } else if (calendarState.startMonth && calendarState.endMonth) {
         filteredOrders = filterOrdersByMonthRange(calendarState.startMonth, calendarState.endMonth);
     } else if (calendarState.startYear && calendarState.endYear) {
-        // Фильтрация по годам
         filteredOrders = orders.filter(order => {
             if (!order.orderDate) return false;
             const orderYear = order.orderDate.substring(0, 4);
@@ -479,70 +430,61 @@ function updateStatistics() {
     displayStatistics(stats);
 }
 
-// Инициализация
-// Настройки аутентификации
-const AUTH_PASSWORD = 'Shkafulkin2005';
-// ВАЖНО: При изменении пароля все активные сессии будут сброшены!
+const AUTH_PASSWORD_HASH = '189eb066f73b1fa3cae1eff724e4d0093186c2362ed123cd516310b9c5fd315e';
 const AUTH_STORAGE_KEY = 'orderPlatformAuth';
 const AUTH_VERSION_KEY = 'orderPlatformAuthVersion';
 
-// Получаем хеш пароля для проверки версии (простая защита от изменения пароля)
-function getPasswordHash(password) {
-    // Простой хеш для определения изменения пароля
-    let hash = 0;
-    for (let i = 0; i < password.length; i++) {
-        const char = password.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-    }
-    return hash.toString();
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
 }
 
-// Проверка аутентификации
+async function verifyPassword(inputPassword, storedHash) {
+    const inputHash = await hashPassword(inputPassword);
+    return inputHash === storedHash;
+}
+
 function checkAuth() {
     const authData = localStorage.getItem(AUTH_STORAGE_KEY);
     const savedVersion = localStorage.getItem(AUTH_VERSION_KEY);
-    const currentVersion = getPasswordHash(AUTH_PASSWORD);
     
-    // Если версия пароля изменилась, сбрасываем все сессии
-    if (savedVersion && savedVersion !== currentVersion) {
+    if (savedVersion && savedVersion !== AUTH_PASSWORD_HASH) {
         console.log('Пароль был изменен, сбрасываем все сессии');
         localStorage.removeItem(AUTH_STORAGE_KEY);
-        localStorage.setItem(AUTH_VERSION_KEY, currentVersion);
+        localStorage.setItem(AUTH_VERSION_KEY, AUTH_PASSWORD_HASH);
         return false;
     }
     
     if (authData) {
         try {
-            const { password, timestamp } = JSON.parse(authData);
-            // Проверяем, что пароль правильный и сессия не истекла (24 часа)
-            const sessionDuration = 24 * 60 * 60 * 1000; // 24 часа
-            if (password === AUTH_PASSWORD && Date.now() - timestamp < sessionDuration) {
-                // Обновляем версию пароля при успешной проверке
-                if (!savedVersion || savedVersion !== currentVersion) {
-                    localStorage.setItem(AUTH_VERSION_KEY, currentVersion);
+            const { hash, timestamp } = JSON.parse(authData);
+            const sessionDuration = 24 * 60 * 60 * 1000;
+            if (hash === AUTH_PASSWORD_HASH && Date.now() - timestamp < sessionDuration) {
+                if (!savedVersion || savedVersion !== AUTH_PASSWORD_HASH) {
+                    localStorage.setItem(AUTH_VERSION_KEY, AUTH_PASSWORD_HASH);
                 }
                 return true;
             }
         } catch (e) {
-            // Невалидные данные
         }
     }
     return false;
 }
 
-// Сохранение аутентификации
-function saveAuth() {
+async function saveAuth(inputPassword) {
+    const hash = await hashPassword(inputPassword);
     const authData = {
-        password: AUTH_PASSWORD,
+        hash: hash,
         timestamp: Date.now()
     };
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-    // Сохраняем версию пароля для отслеживания изменений
-    localStorage.setItem(AUTH_VERSION_KEY, getPasswordHash(AUTH_PASSWORD));
+    localStorage.setItem(AUTH_VERSION_KEY, AUTH_PASSWORD_HASH);
 }
 
-// Инициализация аутентификации
 function initAuth() {
     const authModal = document.getElementById('authModal');
     const mainContainer = document.getElementById('mainContainer');
@@ -551,31 +493,26 @@ function initAuth() {
     const authError = document.getElementById('authError');
 
     if (checkAuth()) {
-        // Пользователь уже авторизован
         authModal.style.display = 'none';
         mainContainer.style.display = 'block';
-        // Инициализируем данные, так как пользователь уже авторизован
-        // Небольшая задержка, чтобы DOM был готов
         setTimeout(() => {
             initializeAppData();
         }, 100);
         return true;
     } else {
-        // Показываем модальное окно
         authModal.style.display = 'flex';
         mainContainer.style.display = 'none';
         
-        // Обработчик входа
-        const handleAuth = () => {
+        const handleAuth = async () => {
             const password = authPassword.value.trim();
-            if (password === AUTH_PASSWORD) {
-                saveAuth();
+            const isValid = await verifyPassword(password, AUTH_PASSWORD_HASH);
+            if (isValid) {
+                await saveAuth(password);
                 authModal.style.display = 'none';
                 mainContainer.style.display = 'block';
                 authError.style.display = 'none';
                 authPassword.value = '';
                 
-                // Инициализируем данные после успешной авторизации
                 initializeAppData();
             } else {
                 authError.textContent = 'Неверный пароль';
@@ -595,14 +532,11 @@ function initAuth() {
     }
 }
 
-// Функция для блокировки редактирования
 function isAuthorized() {
     return checkAuth();
 }
 
-// Функция для инициализации данных приложения
 function initializeAppData() {
-    // Функция для загрузки данных после инициализации Firebase
     const initializeData = () => {
         if (window.firebaseDatabase) {
             console.log('Firebase готов, загружаем данные...');
@@ -616,12 +550,9 @@ function initializeAppData() {
         }
     };
     
-    // Ждем события готовности Firebase или проверяем каждые 100мс
     if (window.firebaseDatabase) {
-        // Firebase уже загружен
         initializeData();
     } else {
-        // Ждем события или проверяем каждые 100мс
         window.addEventListener('firebaseReady', initializeData, { once: true });
         
         const waitForFirebase = setInterval(() => {
@@ -631,7 +562,6 @@ function initializeAppData() {
             }
         }, 100);
         
-        // Таймаут на случай, если Firebase не загрузится
         setTimeout(() => {
             clearInterval(waitForFirebase);
             if (!window.firebaseDatabase) {
@@ -644,13 +574,10 @@ function initializeAppData() {
     updateCurrentDate();
     setDefaultDate();
     
-    // Инициализация календаря и других элементов
     initializeCalendarAndHandlers();
 }
 
-// Функция для инициализации календаря и обработчиков событий
 function initializeCalendarAndHandlers() {
-    // Обработчик формы
     const orderForm = document.getElementById('orderForm');
     if (orderForm) {
         orderForm.addEventListener('submit', (e) => {
@@ -664,13 +591,11 @@ function initializeCalendarAndHandlers() {
         });
     }
     
-    // Обработчик поиска
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
     }
     
-    // Обработчики статистики и календаря
     const prevMonth = document.getElementById('prevMonth');
     const nextMonth = document.getElementById('nextMonth');
     const calendarMonth = document.getElementById('calendarMonth');
@@ -680,13 +605,11 @@ function initializeCalendarAndHandlers() {
     const prevYearRange = document.getElementById('prevYearRange');
     const nextYearRange = document.getElementById('nextYearRange');
     
-    // Инициализация календаря
     if (calendarState) {
         calendarState.view = 'days';
         renderCalendar();
     }
     
-    // Клик на месяц - открыть выбор месяцев
     if (calendarMonth) {
         calendarMonth.addEventListener('click', () => {
             calendarState.view = 'months';
@@ -694,7 +617,6 @@ function initializeCalendarAndHandlers() {
         });
     }
     
-    // Клик на год - открыть выбор годов
     if (calendarYear) {
         calendarYear.addEventListener('click', () => {
             calendarState.view = 'years';
@@ -702,7 +624,6 @@ function initializeCalendarAndHandlers() {
         });
     }
     
-    // Навигация по месяцам
     if (prevMonth) {
         prevMonth.addEventListener('click', goToPrevMonth);
     }
@@ -710,7 +631,6 @@ function initializeCalendarAndHandlers() {
         nextMonth.addEventListener('click', goToNextMonth);
     }
     
-    // Навигация по годам в выборе месяцев
     if (prevYear) {
         prevYear.addEventListener('click', () => changeYear(-1));
     }
@@ -718,7 +638,6 @@ function initializeCalendarAndHandlers() {
         nextYear.addEventListener('click', () => changeYear(1));
     }
     
-    // Навигация по диапазонам годов
     if (prevYearRange) {
         prevYearRange.addEventListener('click', () => changeYearRange(-10));
     }
@@ -726,7 +645,6 @@ function initializeCalendarAndHandlers() {
         nextYearRange.addEventListener('click', () => changeYearRange(10));
     }
     
-    // Кнопки "Назад"
     const backToDaysFromMonths = document.getElementById('backToDaysFromMonths');
     const backToMonthsFromYears = document.getElementById('backToMonthsFromYears');
     const pickerYear = document.getElementById('pickerYear');
@@ -760,7 +678,6 @@ function initializeCalendarAndHandlers() {
         });
     }
     
-    // Обработчик импорта из Excel
     const importExcelBtn = document.getElementById('importExcelBtn');
     const excelFileInput = document.getElementById('excelFileInput');
     
@@ -771,7 +688,6 @@ function initializeCalendarAndHandlers() {
                 initAuth();
                 return;
             }
-            // Проверяем, загружена ли библиотека XLSX
             if (typeof XLSX === 'undefined') {
                 alert('Библиотека для чтения Excel файлов не загружена. Пожалуйста, обновите страницу.');
                 console.error('XLSX library not loaded');
@@ -793,7 +709,6 @@ function initializeCalendarAndHandlers() {
         console.error('Не найдены элементы для импорта Excel:', { importExcelBtn, excelFileInput });
     }
     
-    // Обработчик очистки всех заказов
     const clearAllBtn = document.getElementById('clearAllBtn');
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', clearAllOrders);
@@ -801,16 +716,13 @@ function initializeCalendarAndHandlers() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Инициализируем аутентификацию
     if (!initAuth()) {
-        return; // Не продолжаем, если пользователь не авторизован
+        return;
     }
     
-    // Инициализируем данные приложения (включая календарь и все обработчики)
     initializeAppData();
 });
 
-// Обработка отправки формы
 function handleFormSubmit(e) {
     e.preventDefault();
     
@@ -822,12 +734,10 @@ function handleFormSubmit(e) {
     const squarePlyonka = document.getElementById('squarePlyonka').value;
     const squarePaint = document.getElementById('squarePaint').value;
     
-    // Если статус не выбран, устанавливаем "в работе" по умолчанию
     if (!orderStatus || orderStatus === '') {
         orderStatus = 'в работе';
     }
     
-    // Формируем объект с квадратами
     const squares = {
         shpon: squareShpon ? parseFloat(squareShpon) : null,
         plyonka: squarePlyonka ? parseFloat(squarePlyonka) : null,
@@ -835,10 +745,8 @@ function handleFormSubmit(e) {
     };
     
     if (editingOrderId !== null) {
-        // Редактирование существующего заказа
         const orderIndex = orders.findIndex(order => order.id === editingOrderId);
         if (orderIndex !== -1) {
-            // Проверяем, не используется ли этот номер другим заказом
             const existingOrder = orders.find(order => 
                 order.orderNumber === parseInt(orderNumber) && order.id !== editingOrderId
             );
@@ -858,14 +766,12 @@ function handleFormSubmit(e) {
         }
         editingOrderId = null;
     } else {
-        // Проверяем, существует ли уже заказ с таким номером
         const existingOrder = orders.find(order => order.orderNumber === parseInt(orderNumber));
         if (existingOrder) {
             alert(`Заказ с номером ${orderNumber} уже существует!`);
             return;
         }
         
-        // Добавление нового заказа
         const newOrder = {
             id: Date.now(),
             orderNumber: parseInt(orderNumber),
@@ -880,20 +786,15 @@ function handleFormSubmit(e) {
     
     saveOrders();
     renderOrders();
-    updateStatistics(); // Обновляем статистику после изменения заказов
+    updateStatistics();
     orderForm.reset();
-    setDefaultDate(); // Устанавливаем текущую дату после сброса формы
+    setDefaultDate();
 }
 
-// Сохранение заказов в localStorage и Firebase
 function saveOrders() {
-    // Проверяем и исправляем дубликаты ID перед сохранением
     fixDuplicateIds();
     
-    // Сохраняем локально
     localStorage.setItem('orders', JSON.stringify(orders));
-    
-    // Сохраняем в Firebase (если доступен)
     if (window.firebaseDatabase && !isSyncing) {
         isSyncing = true;
         try {
@@ -918,10 +819,8 @@ function saveOrders() {
     }
 }
 
-// Загрузка заказов из Firebase
 function loadOrdersFromFirebase() {
     if (!window.firebaseDatabase) {
-        // Если Firebase не доступен, загружаем из localStorage
         console.log('Firebase не доступен, загружаем из localStorage');
         orders = JSON.parse(localStorage.getItem('orders')) || [];
         fixDuplicateIds();
@@ -932,7 +831,6 @@ function loadOrdersFromFirebase() {
     
     const ordersRef = window.firebaseRef(window.firebaseDatabase, 'orders');
     
-    // Слушаем изменения в реальном времени
     window.firebaseOnValue(ordersRef, (snapshot) => {
         if (isSyncing) {
             console.log('Пропускаем синхронизацию (предотвращение цикла)');
@@ -946,10 +844,8 @@ function loadOrdersFromFirebase() {
             fixDuplicateIds();
             renderOrders();
             updateStatistics();
-            // Сохраняем локально как резервную копию
             localStorage.setItem('orders', JSON.stringify(orders));
         } else {
-            // Если в Firebase нет данных, загружаем из localStorage
             console.log('В Firebase нет данных, загружаем из localStorage');
             orders = JSON.parse(localStorage.getItem('orders')) || [];
             fixDuplicateIds();
@@ -958,7 +854,6 @@ function loadOrdersFromFirebase() {
         }
     }, (error) => {
         console.error('Ошибка загрузки из Firebase:', error);
-        // В случае ошибки загружаем из localStorage
         orders = JSON.parse(localStorage.getItem('orders')) || [];
         fixDuplicateIds();
         renderOrders();
@@ -966,14 +861,12 @@ function loadOrdersFromFirebase() {
     });
 }
 
-// Исправление дубликатов ID
 function fixDuplicateIds() {
     const idMap = new Map();
     let hasDuplicates = false;
     
     orders.forEach((order, index) => {
         if (idMap.has(order.id)) {
-            // Найден дубликат - создаем новый уникальный ID
             const newId = Date.now() + index * 1000 + Math.random() * 1000;
             console.warn(`Дубликат ID найден для заказа ${order.orderNumber}. Старый ID: ${order.id}, новый ID: ${newId}`);
             order.id = newId;
@@ -987,7 +880,6 @@ function fixDuplicateIds() {
     }
 }
 
-// Очистка всех заказов
 function clearAllOrders() {
     if (!isAuthorized()) {
         alert('Для очистки заказов необходимо авторизоваться');
@@ -1007,25 +899,20 @@ function clearAllOrders() {
         return;
     }
     
-    // Дополнительное подтверждение
     if (!confirm('Последнее предупреждение! Все заказы будут удалены безвозвратно. Продолжить?')) {
         return;
     }
     
-    // Очищаем массив заказов
     orders = [];
     
-    // Очищаем localStorage
     localStorage.removeItem('orders');
     
-    // Обновляем отображение
     renderOrders();
     updateStatistics();
     
     alert(`Все заказы (${orderCount} шт.) успешно удалены.`);
 }
 
-// Отображение заказов
 function renderOrders(filteredOrders = null) {
     const ordersToRender = filteredOrders || orders;
     
@@ -1039,7 +926,6 @@ function renderOrders(filteredOrders = null) {
         return;
     }
     
-    // Сортировка по номеру заказа
     const sortedOrders = [...ordersToRender].sort((a, b) => a.orderNumber - b.orderNumber);
     
     ordersList.innerHTML = sortedOrders.map(order => `
@@ -1099,7 +985,6 @@ function renderOrders(filteredOrders = null) {
     `).join('');
 }
 
-// Редактирование заказа
 function editOrder(id, orderNumber = null) {
     if (!isAuthorized()) {
         alert('Для редактирования заказов необходимо авторизоваться');
@@ -1108,7 +993,6 @@ function editOrder(id, orderNumber = null) {
     }
     console.log('editOrder вызвана с id:', id, 'тип:', typeof id, 'orderNumber:', orderNumber);
     
-    // Пробуем найти заказ разными способами
     let order = orders.find(o => o.id === id);
     if (!order) {
         order = orders.find(o => Number(o.id) === Number(id));
@@ -1120,7 +1004,6 @@ function editOrder(id, orderNumber = null) {
         order = orders.find(o => o.id == id);
     }
     
-    // Если не нашли по ID, пробуем найти по номеру заказа
     if (!order && orderNumber !== null) {
         order = orders.find(o => o.orderNumber === orderNumber || o.orderNumber == orderNumber);
     }
@@ -1139,30 +1022,24 @@ function editOrder(id, orderNumber = null) {
     document.getElementById('orderDate').value = order.orderDate || '';
     document.getElementById('orderStatus').value = order.status;
     
-    // Заполняем поля квадратов
     if (order.squares) {
         document.getElementById('squareShpon').value = order.squares.shpon || '';
         document.getElementById('squarePlyonka').value = order.squares.plyonka || '';
         document.getElementById('squarePaint').value = order.squares.paint || '';
     } else {
-        // Для старых заказов с squareCount
         document.getElementById('squareShpon').value = '';
         document.getElementById('squarePlyonka').value = '';
         document.getElementById('squarePaint').value = '';
     }
     
-    // Сохраняем ID заказа для последующего обновления
-    editingOrderId = order.id; // Используем ID найденного заказа, а не переданный параметр
+    editingOrderId = order.id;
     
-    // Прокрутка к форме
     document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
     
-    // Изменение текста кнопки
     const submitButton = orderForm.querySelector('button[type="submit"]');
     submitButton.textContent = 'Сохранить изменения';
 }
 
-// Быстрое изменение статуса на "готов"
 function markAsReady(id, orderNumber = null) {
     if (!isAuthorized()) {
         alert('Для изменения статуса заказов необходимо авторизоваться');
@@ -1171,7 +1048,6 @@ function markAsReady(id, orderNumber = null) {
     }
     console.log('markAsReady вызвана с id:', id, 'тип:', typeof id, 'orderNumber:', orderNumber);
     
-    // Нормализуем ID - приводим к строке для сравнения
     const normalizedId = String(id);
     
     console.log('Нормализованный ID:', normalizedId);
@@ -1183,18 +1059,14 @@ function markAsReady(id, orderNumber = null) {
         status: o.status 
     })));
     
-    // Пробуем найти заказ разными способами
     let orderIndex = -1;
     
-    // 1. Точное совпадение ID
     orderIndex = orders.findIndex(order => order.id === id);
     
-    // 2. Сравнение как строки
     if (orderIndex === -1) {
         orderIndex = orders.findIndex(order => String(order.id) === normalizedId);
     }
     
-    // 3. Сравнение как числа (если оба можно преобразовать в числа)
     if (orderIndex === -1 && !isNaN(Number(id))) {
         orderIndex = orders.findIndex(order => {
             const orderIdNum = Number(order.id);
@@ -1203,12 +1075,10 @@ function markAsReady(id, orderNumber = null) {
         });
     }
     
-    // 4. Сравнение через == (нестрогое)
     if (orderIndex === -1) {
         orderIndex = orders.findIndex(order => order.id == id);
     }
     
-    // 5. Если передан номер заказа, ищем по нему
     if (orderIndex === -1 && orderNumber !== null) {
         orderIndex = orders.findIndex(order => order.orderNumber === orderNumber || order.orderNumber == orderNumber);
     }
@@ -1219,7 +1089,6 @@ function markAsReady(id, orderNumber = null) {
         const order = orders[orderIndex];
         console.log('Найден заказ:', order.orderNumber, 'текущий статус:', order.status);
         
-        // Проверяем, что статус действительно изменится
         if (order.status === 'готов') {
             console.warn('Заказ уже имеет статус "готов"');
             return;
@@ -1244,7 +1113,6 @@ function markAsReady(id, orderNumber = null) {
     }
 }
 
-// Удаление заказа
 function deleteOrder(id, orderNumber = null) {
     if (!isAuthorized()) {
         alert('Для удаления заказов необходимо авторизоваться');
@@ -1252,11 +1120,9 @@ function deleteOrder(id, orderNumber = null) {
         return;
     }
     if (confirm('Вы уверены, что хотите удалить этот заказ?')) {
-        // Находим заказ ДО удаления, чтобы получить его ID для Firebase
         let orderToDelete = null;
         let orderIndex = -1;
         
-        // Пробуем найти заказ разными способами
         orderIndex = orders.findIndex(order => order.id === id);
         if (orderIndex === -1) {
             orderIndex = orders.findIndex(order => Number(order.id) === Number(id));
@@ -1274,15 +1140,12 @@ function deleteOrder(id, orderNumber = null) {
             return;
         }
         
-        // Сохраняем ID заказа перед удалением
         orderToDelete = orders[orderIndex];
         const orderIdToDelete = orderToDelete.id;
         
-        // Удаляем из массива
         orders.splice(orderIndex, 1);
         saveOrders();
         
-        // Удаляем из Firebase
         if (window.firebaseDatabase) {
             const orderRef = window.firebaseRef(window.firebaseDatabase, `orders/${orderIdToDelete}`);
             window.firebaseRemove(orderRef).catch(error => {
@@ -1293,7 +1156,6 @@ function deleteOrder(id, orderNumber = null) {
         renderOrders();
         updateStatistics();
         
-        // Если удаляли редактируемый заказ, сбросить форму
         if (editingOrderId === id || Number(editingOrderId) === Number(id) || String(editingOrderId) === String(id)) {
             editingOrderId = null;
             orderForm.reset();
@@ -1303,7 +1165,6 @@ function deleteOrder(id, orderNumber = null) {
     }
 }
 
-// Поиск заказов
 function handleSearch(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     
@@ -1321,14 +1182,12 @@ function handleSearch(e) {
     renderOrders(filteredOrders);
 }
 
-// Сброс формы при отмене редактирования
 orderForm.addEventListener('reset', () => {
     editingOrderId = null;
     const submitButton = orderForm.querySelector('button[type="submit"]');
     submitButton.textContent = 'Добавить заказ';
 });
 
-// Импорт данных из Excel
 function handleExcelImport(event) {
     const file = event.target.files[0];
     if (!file) {
@@ -1338,7 +1197,6 @@ function handleExcelImport(event) {
     
     console.log('Начало импорта файла:', file.name);
     
-    // Проверяем наличие библиотеки
     if (typeof XLSX === 'undefined') {
         alert('Библиотека для чтения Excel файлов не загружена. Пожалуйста, обновите страницу.');
         console.error('XLSX library not loaded');
@@ -1359,15 +1217,12 @@ function handleExcelImport(event) {
             const workbook = XLSX.read(data, { type: 'array' });
             console.log('Workbook создан, листы:', workbook.SheetNames);
             
-            // Читаем первый лист
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Конвертируем в JSON для анализа
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
             console.log('Данные конвертированы, строк:', jsonData.length);
             
-            // Парсим данные
             const importedOrders = parseExcelData(jsonData);
             console.log('Найдено заказов:', importedOrders.length);
             
@@ -1376,26 +1231,21 @@ function handleExcelImport(event) {
                 return;
             }
             
-            // Подтверждение импорта
             const confirmMessage = `Найдено заказов: ${importedOrders.length}\n\nИмпортировать их в платформу?`;
             if (!confirm(confirmMessage)) {
                 return;
             }
             
-            // Добавляем заказы
             let importedCount = 0;
             let skippedCount = 0;
             
             importedOrders.forEach(order => {
-                // Проверяем, нет ли уже такого номера заказа
                 const existingOrder = orders.find(o => o.orderNumber == order.orderNumber);
                 if (existingOrder) {
                     skippedCount++;
                     return;
                 }
                 
-                // Создаем новый заказ
-                // Формируем объект squares только с непустыми значениями
                 const squares = {};
                 
                 console.log(`Импорт заказа ${order.orderNumber}:`, {
@@ -1422,7 +1272,6 @@ function handleExcelImport(event) {
                     console.log(`  -> Пленка НЕ добавлена (значение: ${order.plyonka}, тип: ${typeof order.plyonka})`);
                 }
                 
-                // Генерируем уникальный ID - используем timestamp + порядковый номер + случайное число
                 const uniqueId = Date.now() + importedCount * 1000 + Math.random();
                 
                 const newOrder = {
@@ -1444,7 +1293,6 @@ function handleExcelImport(event) {
             
             alert(`Импорт завершен!\n\nИмпортировано: ${importedCount}\nПропущено (дубликаты): ${skippedCount}`);
             
-            // Очищаем input
             event.target.value = '';
             
         } catch (error) {
@@ -1456,22 +1304,17 @@ function handleExcelImport(event) {
     reader.readAsArrayBuffer(file);
 }
 
-// Парсинг данных из Excel
 function parseExcelData(jsonData) {
     const orders = [];
-    
-    // Находим индексы столбцов
     let orderNumCol = null;
     let kvCol = null;
     let plenkaCol = null;
     let shponCol = null;
     let dateCol = null;
-    let customerNameCol = null; // Ищем столбец с именем исполнителя
+    let customerNameCol = null;
     
-    // Текущая дата для группировки заказов
     let currentDate = null;
     
-    // Ищем заголовки - ищем более тщательно
     console.log('Начинаем поиск заголовков...');
     for (let i = 0; i < Math.min(30, jsonData.length); i++) {
         const row = jsonData[i];
@@ -1480,18 +1323,14 @@ function parseExcelData(jsonData) {
         for (let j = 0; j < row.length; j++) {
             const cellValue = String(row[j] || '').trim();
             
-            // Ищем "№ Заказа" - точное совпадение или содержит
             if ((cellValue === '№ Заказа' || cellValue === '№ заказа' || cellValue.includes('№ Заказа')) && orderNumCol === null) {
                 orderNumCol = j;
                 console.log(`Найден столбец "№ Заказа" в строке ${i}, колонке ${j}`);
             }
-            // Ищем "Кв" - только точное совпадение, ищем в той же строке что и "№ Заказа" или рядом
             if ((cellValue === 'Кв' || cellValue === 'кв') && kvCol === null) {
                 kvCol = j;
                 console.log(`Найден столбец "Кв" в строке ${i}, колонке ${j}`);
             }
-            // Ищем "Пленка" или "Плёнка" - ТОЛЬКО начиная со столбца G (индекс 6) и далее
-            // Столбцы: A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, ...
             if ((cellValue.includes('Пленка') || cellValue.includes('Плёнка')) && j >= 6) {
                 console.log(`Найдено совпадение с "Пленка" в строке ${i}, колонке ${j}: "${cellValue}"`);
                 if (plenkaCol === null) {
@@ -1501,20 +1340,16 @@ function parseExcelData(jsonData) {
                     console.log(`⚠ ВНИМАНИЕ: Найдено еще одно совпадение "Пленка" в колонке ${j}, но уже используется колонка ${plenkaCol}`);
                 }
             } else if ((cellValue.includes('Пленка') || cellValue.includes('Плёнка')) && j < 6) {
-                // Логируем, но игнорируем совпадения до столбца G
                 console.log(`⚠ Игнорируем "Пленка" в колонке ${j} (до столбца G), ищем только начиная с G`);
             }
-            // Ищем "Шпон"
             if (cellValue.includes('Шпон') && shponCol === null) {
                 shponCol = j;
                 console.log(`Найден столбец "Шпон" в строке ${i}, колонке ${j}`);
             }
-            // Ищем "Число"
             if (cellValue === 'Число' && dateCol === null) {
                 dateCol = j;
                 console.log(`Найден столбец "Число" в строке ${i}, колонке ${j}`);
             }
-            // Ищем столбец с именем исполнителя - ищем "Прописан"
             if ((cellValue.includes('Прописан') || cellValue.includes('прописан')) && customerNameCol === null) {
                 customerNameCol = j;
                 console.log(`Найден столбец "Прописан" в строке ${i}, колонке ${j}`);
@@ -1536,7 +1371,6 @@ function parseExcelData(jsonData) {
         return orders;
     }
     
-    // Находим строку начала данных (после заголовка "№ Заказа")
     let dataStartRow = null;
     for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
@@ -1554,25 +1388,19 @@ function parseExcelData(jsonData) {
         return orders;
     }
     
-    // Если не нашли "Кв" в заголовках, ищем в данных - это может быть столбец с числовыми значениями
     if (kvCol === null && orderNumCol !== null) {
-        // Ищем столбец с числовыми значениями (квадраты) в строках с заказами
-        // Проверяем несколько строк с заказами для надежности
         const candidateCols = {};
         
         for (let i = dataStartRow; i < Math.min(dataStartRow + 20, jsonData.length); i++) {
             const row = jsonData[i];
             if (!row) continue;
             
-            // Проверяем, есть ли номер заказа в этой строке
             const orderNum = row[orderNumCol];
             if (!orderNum || isNaN(orderNum)) continue;
             
-            // Проверяем все столбцы справа от номера заказа
             for (let j = orderNumCol + 1; j < Math.min(orderNumCol + 20, row.length); j++) {
                 if (row[j] !== null && row[j] !== undefined && row[j] !== '') {
                     const value = parseFloat(row[j]);
-                    // Если это число от 0.1 до 1000 (разумный диапазон для квадратов)
                     if (!isNaN(value) && value > 0.1 && value < 1000) {
                         if (!candidateCols[j]) {
                             candidateCols[j] = 0;
@@ -1583,7 +1411,6 @@ function parseExcelData(jsonData) {
             }
         }
         
-        // Выбираем столбец, который встречается чаще всего
         let maxCount = 0;
         for (const [col, count] of Object.entries(candidateCols)) {
             if (count > maxCount) {
@@ -1593,26 +1420,21 @@ function parseExcelData(jsonData) {
         }
     }
     
-    // Парсим данные
     for (let i = dataStartRow; i < jsonData.length; i++) {
         const row = jsonData[i];
         if (!row) continue;
         
-        // Проверяем дату
         if (dateCol !== null && row[dateCol] !== null && row[dateCol] !== undefined && row[dateCol] !== '') {
             const dateValue = row[dateCol];
             let dateStr = null;
             
-            // Если это объект Date
             if (dateValue instanceof Date) {
                 const year = dateValue.getFullYear();
                 const month = String(dateValue.getMonth() + 1).padStart(2, '0');
                 const day = String(dateValue.getDate()).padStart(2, '0');
                 dateStr = `${year}-${month}-${day}`;
             } 
-            // Если это строка с датой
             else if (typeof dateValue === 'string') {
-                // Пробуем разные форматы
                 const dateMatch1 = dateValue.match(/(\d{4})-(\d{2})-(\d{2})/);
                 const dateMatch2 = dateValue.match(/(\d{2})\.(\d{2})\.(\d{4})/);
                 const dateMatch3 = dateValue.match(/(\d{4})\/(\d{2})\/(\d{2})/);
@@ -1625,9 +1447,7 @@ function parseExcelData(jsonData) {
                     dateStr = `${dateMatch3[1]}-${dateMatch3[2]}-${dateMatch3[3]}`;
                 }
             }
-            // Если это число (Excel дата как число дней с 1900-01-01)
             else if (typeof dateValue === 'number' && dateValue > 1 && dateValue < 100000) {
-                // Конвертируем Excel дату в обычную дату
                 const excelEpoch = new Date(1899, 11, 30);
                 const date = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
                 const year = date.getFullYear();
@@ -1641,10 +1461,9 @@ function parseExcelData(jsonData) {
             }
         }
         
-        // Проверяем номер заказа
         const orderNumber = row[orderNumCol];
         if (!orderNumber || orderNumber === '' || isNaN(orderNumber)) {
-            continue; // Пропускаем строки без номера заказа
+            continue;
         }
         
         const orderNum = parseInt(orderNumber);
@@ -1652,33 +1471,26 @@ function parseExcelData(jsonData) {
             continue;
         }
         
-        // Получаем квадраты - только если ячейка не пустая и значение > 0
         let paint = null;
         let shpon = null;
         let plyonka = null;
         
         if (kvCol !== null) {
             const kvCell = row[kvCol];
-            // Проверяем, что ячейка не пустая и не содержит только пробелы
             if (kvCell !== null && kvCell !== undefined && kvCell !== '' && String(kvCell).trim() !== '') {
-                // Заменяем запятую на точку для правильного парсинга (русская локаль использует запятую)
                 const normalizedCell = String(kvCell).replace(',', '.');
                 const kvValue = parseFloat(normalizedCell);
-                // Добавляем только если значение валидное и строго больше 0
                 if (!isNaN(kvValue) && isFinite(kvValue) && kvValue > 0) {
-                    paint = kvValue; // "Кв" - это краска
+                    paint = kvValue;
                 }
             }
         }
         
         if (shponCol !== null) {
             const shponCell = row[shponCol];
-            // Проверяем, что ячейка не пустая и не содержит только пробелы
             if (shponCell !== null && shponCell !== undefined && shponCell !== '' && String(shponCell).trim() !== '') {
-                // Заменяем запятую на точку для правильного парсинга (русская локаль использует запятую)
                 const normalizedCell = String(shponCell).replace(',', '.');
                 const shponValue = parseFloat(normalizedCell);
-                // Добавляем только если значение валидное и строго больше 0
                 if (!isNaN(shponValue) && isFinite(shponValue) && shponValue > 0) {
                     shpon = shponValue;
                 }
@@ -1688,18 +1500,14 @@ function parseExcelData(jsonData) {
         if (plenkaCol !== null) {
             const plenkaCell = row[plenkaCol];
             
-            // Детальное логирование для отладки
             console.log(`Заказ ${orderNum}: Читаем пленку из столбца ${plenkaCol}, значение=[${plenkaCell}], тип=${typeof plenkaCell}`);
             
-            // Проверяем, что ячейка не пустая и не содержит только пробелы
             const cellStr = plenkaCell !== null && plenkaCell !== undefined ? String(plenkaCell).trim() : '';
             if (cellStr !== '') {
-                // Заменяем запятую на точку для правильного парсинга (русская локаль использует запятую)
                 const normalizedCell = String(plenkaCell).replace(',', '.');
                 const plenkaValue = parseFloat(normalizedCell);
                 console.log(`Заказ ${orderNum}: Пленка после нормализации="${normalizedCell}", parseFloat=${plenkaValue}, isNaN=${isNaN(plenkaValue)}, isFinite=${isFinite(plenkaValue)}`);
                 
-                // Добавляем только если значение валидное и строго больше 0
                 if (!isNaN(plenkaValue) && isFinite(plenkaValue) && plenkaValue > 0) {
                     plyonka = plenkaValue;
                     console.log(`Заказ ${orderNum}: Пленка УСТАНОВЛЕНА = ${plyonka}`);
@@ -1713,13 +1521,11 @@ function parseExcelData(jsonData) {
             console.log(`Заказ ${orderNum}: Столбец пленки не найден (plenkaCol = null)`);
         }
         
-        // Получаем имя исполнителя
         let customerName = 'Не указан';
         if (customerNameCol !== null && row[customerNameCol] !== null && row[customerNameCol] !== undefined && row[customerNameCol] !== '') {
             customerName = String(row[customerNameCol]).trim();
         }
         
-        // Создаем объект заказа
         const orderObj = {
             orderNumber: orderNum,
             customerName: customerName,
@@ -1729,7 +1535,6 @@ function parseExcelData(jsonData) {
             plyonka: plyonka
         };
         
-        // Логируем финальные значения перед добавлением
         console.log(`Заказ ${orderNum} создан:`, {
             paint: orderObj.paint,
             shpon: orderObj.shpon,
@@ -1741,6 +1546,4 @@ function parseExcelData(jsonData) {
     
     return orders;
 }
-
-
 
