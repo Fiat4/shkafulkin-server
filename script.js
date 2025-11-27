@@ -481,7 +481,7 @@ function updateStatistics() {
 
 // Инициализация
 // Настройки аутентификации
-const AUTH_PASSWORD = 'Shkafulkin2010'; // ИЗМЕНИТЕ ЭТОТ ПАРОЛЬ!
+const AUTH_PASSWORD = 'Shkafulkin2005 '; // ИЗМЕНИТЕ ЭТОТ ПАРОЛЬ!
 const AUTH_STORAGE_KEY = 'orderPlatformAuth';
 
 // Проверка аутентификации
