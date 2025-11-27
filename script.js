@@ -482,17 +482,46 @@ function updateStatistics() {
 // Инициализация
 // Настройки аутентификации
 const AUTH_PASSWORD = 'Shkafulkin2005 '; // ИЗМЕНИТЕ ЭТОТ ПАРОЛЬ!
+// ВАЖНО: При изменении пароля все активные сессии будут сброшены!
 const AUTH_STORAGE_KEY = 'orderPlatformAuth';
+const AUTH_VERSION_KEY = 'orderPlatformAuthVersion';
+
+// Получаем хеш пароля для проверки версии (простая защита от изменения пароля)
+function getPasswordHash(password) {
+    // Простой хеш для определения изменения пароля
+    let hash = 0;
+    for (let i = 0; i < password.length; i++) {
+        const char = password.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString();
+}
 
 // Проверка аутентификации
 function checkAuth() {
     const authData = localStorage.getItem(AUTH_STORAGE_KEY);
+    const savedVersion = localStorage.getItem(AUTH_VERSION_KEY);
+    const currentVersion = getPasswordHash(AUTH_PASSWORD);
+    
+    // Если версия пароля изменилась, сбрасываем все сессии
+    if (savedVersion && savedVersion !== currentVersion) {
+        console.log('Пароль был изменен, сбрасываем все сессии');
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.setItem(AUTH_VERSION_KEY, currentVersion);
+        return false;
+    }
+    
     if (authData) {
         try {
             const { password, timestamp } = JSON.parse(authData);
             // Проверяем, что пароль правильный и сессия не истекла (24 часа)
             const sessionDuration = 24 * 60 * 60 * 1000; // 24 часа
             if (password === AUTH_PASSWORD && Date.now() - timestamp < sessionDuration) {
+                // Обновляем версию пароля при успешной проверке
+                if (!savedVersion || savedVersion !== currentVersion) {
+                    localStorage.setItem(AUTH_VERSION_KEY, currentVersion);
+                }
                 return true;
             }
         } catch (e) {
@@ -509,6 +538,8 @@ function saveAuth() {
         timestamp: Date.now()
     };
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+    // Сохраняем версию пароля для отслеживания изменений
+    localStorage.setItem(AUTH_VERSION_KEY, getPasswordHash(AUTH_PASSWORD));
 }
 
 // Инициализация аутентификации
