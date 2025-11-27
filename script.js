@@ -481,7 +481,7 @@ function updateStatistics() {
 
 // Инициализация
 // Настройки аутентификации
-const AUTH_PASSWORD = 'Shkafulkin2005 '; // ИЗМЕНИТЕ ЭТОТ ПАРОЛЬ!
+const AUTH_PASSWORD = 'Shkafulkin2005';
 // ВАЖНО: При изменении пароля все активные сессии будут сброшены!
 const AUTH_STORAGE_KEY = 'orderPlatformAuth';
 const AUTH_VERSION_KEY = 'orderPlatformAuthVersion';
@@ -1741,5 +1741,6 @@ function parseExcelData(jsonData) {
     
     return orders;
 }
+
 
 
