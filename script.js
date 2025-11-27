@@ -154,7 +154,12 @@ function renderCalendar() {
 
 function renderDays() {
     const calendarDays = document.getElementById('calendarDays');
+    const calendarMonth = document.getElementById('calendarMonth');
+    const calendarYear = document.getElementById('calendarYear');
     if (!calendarDays) return;
+    
+    if (calendarMonth) calendarMonth.textContent = getMonthName(calendarState.currentMonth);
+    if (calendarYear) calendarYear.textContent = calendarState.currentYear;
     
     const firstDay = new Date(calendarState.currentYear, calendarState.currentMonth, 1);
     const lastDay = new Date(calendarState.currentYear, calendarState.currentMonth + 1, 0);
@@ -379,6 +384,14 @@ function formatMonth(monthString) {
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
                         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     return `${monthNames[parseInt(month) - 1]} ${year}`;
+}
+
+function goToPrevMonth() {
+    changeMonth(-1);
+}
+
+function goToNextMonth() {
+    changeMonth(1);
 }
 
 function changeMonth(direction) {
