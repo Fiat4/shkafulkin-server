@@ -523,6 +523,11 @@ function initAuth() {
         // Пользователь уже авторизован
         authModal.style.display = 'none';
         mainContainer.style.display = 'block';
+        // Инициализируем данные, так как пользователь уже авторизован
+        // Небольшая задержка, чтобы DOM был готов
+        setTimeout(() => {
+            initializeAppData();
+        }, 100);
         return true;
     } else {
         // Показываем модальное окно
@@ -538,6 +543,9 @@ function initAuth() {
                 mainContainer.style.display = 'block';
                 authError.style.display = 'none';
                 authPassword.value = '';
+                
+                // Инициализируем данные после успешной авторизации
+                initializeAppData();
             } else {
                 authError.textContent = 'Неверный пароль';
                 authError.style.display = 'block';
@@ -561,12 +569,8 @@ function isAuthorized() {
     return checkAuth();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Инициализируем аутентификацию
-    if (!initAuth()) {
-        return; // Не продолжаем, если пользователь не авторизован
-    }
-    
+// Функция для инициализации данных приложения
+function initializeAppData() {
     // Функция для загрузки данных после инициализации Firebase
     const initializeData = () => {
         if (window.firebaseDatabase) {
@@ -609,21 +613,33 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCurrentDate();
     setDefaultDate();
     
+    // Инициализация календаря и других элементов
+    initializeCalendarAndHandlers();
+}
+
+// Функция для инициализации календаря и обработчиков событий
+function initializeCalendarAndHandlers() {
     // Обработчик формы
-    orderForm.addEventListener('submit', (e) => {
-        if (!isAuthorized()) {
-            e.preventDefault();
-            alert('Для добавления заказов необходимо авторизоваться');
-            initAuth();
-            return;
-        }
-        handleFormSubmit(e);
-    });
+    const orderForm = document.getElementById('orderForm');
+    if (orderForm) {
+        orderForm.addEventListener('submit', (e) => {
+            if (!isAuthorized()) {
+                e.preventDefault();
+                alert('Для добавления заказов необходимо авторизоваться');
+                initAuth();
+                return;
+            }
+            handleFormSubmit(e);
+        });
+    }
     
     // Обработчик поиска
-    searchInput.addEventListener('input', handleSearch);
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
+    }
     
-    // Обработчики статистики
+    // Обработчики статистики и календаря
     const prevMonth = document.getElementById('prevMonth');
     const nextMonth = document.getElementById('nextMonth');
     const calendarMonth = document.getElementById('calendarMonth');
@@ -634,8 +650,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextYearRange = document.getElementById('nextYearRange');
     
     // Инициализация календаря
-    calendarState.view = 'days';
-    renderCalendar();
+    if (calendarState) {
+        calendarState.view = 'days';
+        renderCalendar();
+    }
     
     // Клик на месяц - открыть выбор месяцев
     if (calendarMonth) {
@@ -653,34 +671,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Навигация по дням/месяцам/годам
+    // Навигация по месяцам
     if (prevMonth) {
-        prevMonth.addEventListener('click', () => changeMonth(-1));
+        prevMonth.addEventListener('click', goToPrevMonth);
     }
-    
     if (nextMonth) {
-        nextMonth.addEventListener('click', () => changeMonth(1));
+        nextMonth.addEventListener('click', goToNextMonth);
     }
     
     // Навигация по годам в выборе месяцев
     if (prevYear) {
         prevYear.addEventListener('click', () => changeYear(-1));
     }
-    
     if (nextYear) {
         nextYear.addEventListener('click', () => changeYear(1));
     }
     
     // Навигация по диапазонам годов
     if (prevYearRange) {
-        prevYearRange.addEventListener('click', () => changeYearRange(-1));
+        prevYearRange.addEventListener('click', () => changeYearRange(-10));
     }
-    
     if (nextYearRange) {
-        nextYearRange.addEventListener('click', () => changeYearRange(1));
+        nextYearRange.addEventListener('click', () => changeYearRange(10));
     }
     
-    // Кнопки возврата
+    // Кнопки "Назад"
     const backToDaysFromMonths = document.getElementById('backToDaysFromMonths');
     const backToMonthsFromYears = document.getElementById('backToMonthsFromYears');
     const pickerYear = document.getElementById('pickerYear');
@@ -700,18 +715,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Клик на год в выборе месяцев - возврат к дням
     if (pickerYear) {
         pickerYear.addEventListener('click', () => {
-            calendarState.view = 'days';
+            calendarState.view = 'years';
             renderCalendar();
         });
     }
     
-    // Клик на диапазон годов - возврат к месяцам
     if (yearRangeTitle) {
         yearRangeTitle.addEventListener('click', () => {
-            calendarState.view = 'months';
+            calendarState.view = 'years';
             renderCalendar();
         });
     }
@@ -754,6 +767,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', clearAllOrders);
     }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Инициализируем аутентификацию
+    if (!initAuth()) {
+        return; // Не продолжаем, если пользователь не авторизован
+    }
+    
+    // Инициализируем данные приложения (включая календарь и все обработчики)
+    initializeAppData();
 });
 
 // Обработка отправки формы
