@@ -405,23 +405,24 @@ function changeMonth(direction) {
             calendarState.currentYear++;
         }
         renderDays();
-    } else if (calendarState.view === 'months') {
-        calendarState.currentYear += direction;
-        renderMonths();
-    } else if (calendarState.view === 'years') {
-        calendarState.currentYear += direction * 10;
-        renderYears();
     }
 }
 
 function changeYear(direction) {
-    calendarState.currentYear += direction;
-    renderMonths();
+    if (calendarState.view === 'months') {
+        const currentYearNum = typeof calendarState.currentYear === 'number' 
+            ? calendarState.currentYear 
+            : parseInt(calendarState.currentYear);
+        calendarState.currentYear = currentYearNum + direction;
+        renderMonths();
+    }
 }
 
 function changeYearRange(direction) {
-    calendarState.currentYear += direction * 10;
-    renderYears();
+    if (calendarState.view === 'years') {
+        calendarState.currentYear += direction * 10;
+        renderYears();
+    }
 }
 
 
@@ -590,7 +591,15 @@ function initializeAppData() {
     initializeCalendarAndHandlers();
 }
 
+let handlersInitialized = false;
+const handlerFunctions = {};
+
 function initializeCalendarAndHandlers() {
+    if (handlersInitialized) {
+        return;
+    }
+    handlersInitialized = true;
+    
     const orderForm = document.getElementById('orderForm');
     if (orderForm) {
         orderForm.addEventListener('submit', (e) => {
@@ -624,17 +633,19 @@ function initializeCalendarAndHandlers() {
     }
     
     if (calendarMonth) {
-        calendarMonth.addEventListener('click', () => {
+        handlerFunctions.handleCalendarMonth = () => {
             calendarState.view = 'months';
             renderCalendar();
-        });
+        };
+        calendarMonth.addEventListener('click', handlerFunctions.handleCalendarMonth);
     }
     
     if (calendarYear) {
-        calendarYear.addEventListener('click', () => {
+        handlerFunctions.handleCalendarYear = () => {
             calendarState.view = 'years';
             renderCalendar();
-        });
+        };
+        calendarYear.addEventListener('click', handlerFunctions.handleCalendarYear);
     }
     
     if (prevMonth) {
@@ -644,18 +655,24 @@ function initializeCalendarAndHandlers() {
         nextMonth.addEventListener('click', goToNextMonth);
     }
     
+    handlerFunctions.handlePrevYear = () => changeYear(-1);
+    handlerFunctions.handleNextYear = () => changeYear(1);
+    
     if (prevYear) {
-        prevYear.addEventListener('click', () => changeYear(-1));
+        prevYear.addEventListener('click', handlerFunctions.handlePrevYear);
     }
     if (nextYear) {
-        nextYear.addEventListener('click', () => changeYear(1));
+        nextYear.addEventListener('click', handlerFunctions.handleNextYear);
     }
     
+    handlerFunctions.handlePrevYearRange = () => changeYearRange(-1);
+    handlerFunctions.handleNextYearRange = () => changeYearRange(1);
+    
     if (prevYearRange) {
-        prevYearRange.addEventListener('click', () => changeYearRange(-10));
+        prevYearRange.addEventListener('click', handlerFunctions.handlePrevYearRange);
     }
     if (nextYearRange) {
-        nextYearRange.addEventListener('click', () => changeYearRange(10));
+        nextYearRange.addEventListener('click', handlerFunctions.handleNextYearRange);
     }
     
     const backToDaysFromMonths = document.getElementById('backToDaysFromMonths');
