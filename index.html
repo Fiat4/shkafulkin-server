@@ -51,6 +51,14 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="orderTime">Время работы (часы:минуты):</label>
+                    <input type="text" id="orderTime" placeholder="0:36 или 1:48" pattern="[0-9]+:[0-5][0-9]">
+                    <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">
+                        Формат: часы:минуты (например: 0:36 = 36 минут, 1:48 = 1 час 48 минут)
+                    </small>
+                </div>
+                
+                <div class="form-group">
                     <label for="orderStatus">Статус:</label>
                     <select id="orderStatus">
                         <option value="">Выберите статус (по умолчанию: В работе)</option>
@@ -150,6 +158,10 @@
                 <div class="stat-item">
                     <div class="stat-label">Плёнка (м²):</div>
                     <div class="stat-value" id="totalPlyonka">0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Общее время работы:</div>
+                    <div class="stat-value" id="totalTime">0:00</div>
                 </div>
             </div>
         </div>
