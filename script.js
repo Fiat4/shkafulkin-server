@@ -795,6 +795,11 @@ function initializeCalendarAndHandlers() {
         clearAllBtn.addEventListener('click', clearAllOrders);
     }
     
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', exportToExcel);
+    }
+    
     const calendarContainer = document.getElementById('calendarContainer');
     const calendarDays = document.getElementById('calendarDays');
     if (calendarDays) {
@@ -1641,5 +1646,162 @@ function parseExcelData(jsonData) {
     }
     
     return orders;
+}
+
+function exportToExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert('Библиотека для работы с Excel не загружена. Пожалуйста, обновите страницу.');
+        console.error('XLSX library not loaded');
+        return;
+    }
+    
+    if (orders.length === 0) {
+        alert('Нет заказов для экспорта.');
+        return;
+    }
+    
+    try {
+        const ordersByMonth = {};
+        
+        orders.forEach(order => {
+            if (!order.orderDate) {
+                const monthKey = 'Без даты';
+                if (!ordersByMonth[monthKey]) {
+                    ordersByMonth[monthKey] = [];
+                }
+                ordersByMonth[monthKey].push(order);
+                return;
+            }
+            
+            const dateParts = order.orderDate.split('-');
+            if (dateParts.length === 3) {
+                const year = dateParts[0];
+                const month = dateParts[1];
+                const monthKey = `${year}-${month}`;
+                
+                if (!ordersByMonth[monthKey]) {
+                    ordersByMonth[monthKey] = [];
+                }
+                ordersByMonth[monthKey].push(order);
+            }
+        });
+        
+        const workbook = XLSX.utils.book_new();
+        
+
+        const monthKeys = Object.keys(ordersByMonth).sort((a, b) => {
+            if (a === 'Без даты') return 1;
+            if (b === 'Без даты') return -1;
+            return a.localeCompare(b);
+        });
+        
+
+        monthKeys.forEach(monthKey => {
+            const monthOrders = ordersByMonth[monthKey];
+            
+
+            monthOrders.sort((a, b) => {
+                if (a.orderDate && b.orderDate) {
+                    if (a.orderDate !== b.orderDate) {
+                        return a.orderDate.localeCompare(b.orderDate);
+                    }
+                }
+                return a.orderNumber - b.orderNumber;
+            });
+
+            const worksheetData = [];
+            
+
+            worksheetData.push([
+                'Дата',
+                'Номер заказа',
+                'Исполнитель',
+                'Статус',
+                'Краска (м²)',
+                'Шпон (м²)',
+                'Плёнка (м²)',
+                'Общее количество (м²)'
+            ]);
+            
+
+            let totalPaint = 0;
+            let totalShpon = 0;
+            let totalPlyonka = 0;
+            let totalSquares = 0;
+            
+            monthOrders.forEach(order => {
+                const paint = order.squares?.paint || 0;
+                const shpon = order.squares?.shpon || 0;
+                const plyonka = order.squares?.plyonka || 0;
+                const orderTotal = paint + shpon + plyonka;
+                
+                totalPaint += paint;
+                totalShpon += shpon;
+                totalPlyonka += plyonka;
+                totalSquares += orderTotal;
+                
+                worksheetData.push([
+                    order.orderDate ? formatDate(order.orderDate) : '',
+                    order.orderNumber || '',
+                    order.customerName || '',
+                    order.status || '',
+                    paint > 0 ? paint.toFixed(2) : '',
+                    shpon > 0 ? shpon.toFixed(2) : '',
+                    plyonka > 0 ? plyonka.toFixed(2) : '',
+                    orderTotal > 0 ? orderTotal.toFixed(2) : ''
+                ]);
+            });
+            
+            worksheetData.push([]);
+            
+            worksheetData.push([
+                'ИТОГО:',
+                monthOrders.length,
+                '',
+                '',
+                totalPaint > 0 ? totalPaint.toFixed(2) : '',
+                totalShpon > 0 ? totalShpon.toFixed(2) : '',
+                totalPlyonka > 0 ? totalPlyonka.toFixed(2) : '',
+                totalSquares > 0 ? totalSquares.toFixed(2) : ''
+            ]);
+            
+            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+            
+            worksheet['!cols'] = [
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 20 },
+                { wch: 12 },
+                { wch: 12 },
+            ];
+            
+            let sheetName = monthKey;
+            if (monthKey !== 'Без даты') {
+                const [year, month] = monthKey.split('-');
+                const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+                const monthName = monthNames[parseInt(month) - 1] || month;
+                sheetName = `${monthName} ${year}`;
+            }
+            
+            if (sheetName.length > 31) {
+                sheetName = sheetName.substring(0, 31);
+            }
+            
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+        });
+        
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const fileName = `Заказы_${dateStr}.xlsx`;
+        
+        XLSX.writeFile(workbook, fileName);
+        
+        alert(`Экспорт завершен! Создано листов: ${monthKeys.length}\nФайл сохранен: ${fileName}`);
+        
+    } catch (error) {
+        console.error('Ошибка при экспорте в Excel:', error);
+        alert('Ошибка при экспорте в Excel: ' + error.message);
+    }
 }
 
