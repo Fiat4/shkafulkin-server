@@ -1831,21 +1831,7 @@ function exportToExcel() {
                         totalTimeMinutes += parsed.totalMinutes;
                     }
                 }
-                
-                worksheetData.push([
-                    order.orderDate ? formatDate(order.orderDate) : '',
-                    order.orderNumber || '',
-                    order.customerName || '',
-                    order.status || '',
-                    order.time ? formatTimeFromString(order.time) : '',
-                    paint > 0 ? paint.toFixed(2) : '',
-                    shpon > 0 ? shpon.toFixed(2) : '',
-                    plyonka > 0 ? plyonka.toFixed(2) : '',
-                    orderTotal > 0 ? orderTotal.toFixed(2) : ''
-                ]);
             });
-            
-            worksheetData.push([]);
             
             const totalHours = Math.floor(totalTimeMinutes / 60);
             const totalMinutesRem = totalTimeMinutes % 60;
@@ -1862,6 +1848,27 @@ function exportToExcel() {
                 totalPlyonka > 0 ? totalPlyonka.toFixed(2) : '',
                 totalSquares > 0 ? totalSquares.toFixed(2) : ''
             ]);
+            
+            worksheetData.push([]);
+            
+            monthOrders.forEach(order => {
+                const paint = order.squares?.paint || 0;
+                const shpon = order.squares?.shpon || 0;
+                const plyonka = order.squares?.plyonka || 0;
+                const orderTotal = paint + shpon + plyonka;
+                
+                worksheetData.push([
+                    order.orderDate ? formatDate(order.orderDate) : '',
+                    order.orderNumber || '',
+                    order.customerName || '',
+                    order.status || '',
+                    order.time ? formatTimeFromString(order.time) : '',
+                    paint > 0 ? paint.toFixed(2) : '',
+                    shpon > 0 ? shpon.toFixed(2) : '',
+                    plyonka > 0 ? plyonka.toFixed(2) : '',
+                    orderTotal > 0 ? orderTotal.toFixed(2) : ''
+                ]);
+            });
             
             const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
             
