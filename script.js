@@ -62,22 +62,34 @@ function calculateStatistics(filteredOrders) {
     let totalShpon = 0;
     let totalPlyonka = 0;
     let totalPaint = 0;
+    let totalTimeMinutes = 0;
+    
     filteredOrders.forEach(order => {
         if (order.status === 'готов' && order.squares) {
             if (order.squares.shpon) totalShpon += order.squares.shpon;
             if (order.squares.plyonka) totalPlyonka += order.squares.plyonka;
             if (order.squares.paint) totalPaint += order.squares.paint;
         }
+        if (order.time) {
+            const parsed = parseTime(order.time);
+            if (parsed) {
+                totalTimeMinutes += parsed.totalMinutes;
+            }
+        }
     });
     
     const totalSquares = totalShpon + totalPlyonka + totalPaint;
+    const totalHours = Math.floor(totalTimeMinutes / 60);
+    const totalMinutes = totalTimeMinutes % 60;
+    const totalTime = `${totalHours}:${String(totalMinutes).padStart(2, '0')}`;
     
     return {
         count: filteredOrders.length,
         totalSquares: totalSquares.toFixed(2),
         totalShpon: totalShpon.toFixed(2),
         totalPlyonka: totalPlyonka.toFixed(2),
-        totalPaint: totalPaint.toFixed(2)
+        totalPaint: totalPaint.toFixed(2),
+        totalTime: totalTime
     };
 }
 
@@ -87,6 +99,57 @@ function displayStatistics(stats) {
     document.getElementById('totalShpon').textContent = stats.totalShpon;
     document.getElementById('totalPlyonka').textContent = stats.totalPlyonka;
     document.getElementById('totalPaint').textContent = stats.totalPaint;
+    if (document.getElementById('totalTime')) {
+        document.getElementById('totalTime').textContent = stats.totalTime || '0:00';
+    }
+}
+
+function parseTime(timeString) {
+    if (!timeString || !timeString.trim()) return null;
+    const parts = timeString.trim().split(':');
+    if (parts.length !== 2) return null;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    if (isNaN(hours) || isNaN(minutes) || hours < 0 || minutes < 0 || minutes >= 60) {
+        return null;
+    }
+    return { hours, minutes, totalMinutes: hours * 60 + minutes };
+}
+
+function formatTime(timeObj) {
+    if (!timeObj) return '';
+    return `${timeObj.hours}:${String(timeObj.minutes).padStart(2, '0')}`;
+}
+
+function formatTimeFromString(timeString) {
+    const parsed = parseTime(timeString);
+    if (!parsed) return timeString || '';
+    return formatTime(parsed);
+}
+
+function addTimes(time1, time2) {
+    if (!time1 && !time2) return null;
+    if (!time1) return time2;
+    if (!time2) return time1;
+    const totalMinutes = time1.totalMinutes + time2.totalMinutes;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return { hours, minutes, totalMinutes };
+}
+
+function calculateTotalTime(ordersList) {
+    let totalMinutes = 0;
+    ordersList.forEach(order => {
+        if (order.time) {
+            const parsed = parseTime(order.time);
+            if (parsed) {
+                totalMinutes += parsed.totalMinutes;
+            }
+        }
+    });
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}:${String(minutes).padStart(2, '0')}`;
 }
 
 function filterOrdersByDateRange(fromDate, toDate) {
@@ -830,6 +893,7 @@ function handleFormSubmit(e) {
     const orderNumber = document.getElementById('orderNumber').value;
     const customerName = document.getElementById('customerName').value;
     const orderDate = document.getElementById('orderDate').value;
+    const orderTime = document.getElementById('orderTime').value;
     let orderStatus = document.getElementById('orderStatus').value;
     const squareShpon = document.getElementById('squareShpon').value;
     const squarePlyonka = document.getElementById('squarePlyonka').value;
@@ -837,6 +901,16 @@ function handleFormSubmit(e) {
     
     if (!orderStatus || orderStatus === '') {
         orderStatus = 'в работе';
+    }
+    
+    let validatedTime = null;
+    if (orderTime && orderTime.trim()) {
+        const parsed = parseTime(orderTime);
+        if (!parsed) {
+            alert('Неверный формат времени! Используйте формат: часы:минуты (например: 0:36 или 1:48)');
+            return;
+        }
+        validatedTime = formatTime(parsed);
     }
     
     const squares = {
@@ -861,6 +935,7 @@ function handleFormSubmit(e) {
                 orderNumber: parseInt(orderNumber),
                 customerName: customerName,
                 orderDate: orderDate || null,
+                time: validatedTime,
                 status: orderStatus,
                 squares: squares
             };
@@ -878,6 +953,7 @@ function handleFormSubmit(e) {
             orderNumber: parseInt(orderNumber),
             customerName: customerName,
             orderDate: orderDate || null,
+            time: validatedTime,
             status: orderStatus,
             squares: squares,
             createdAt: new Date().toISOString()
@@ -1045,6 +1121,12 @@ function renderOrders(filteredOrders = null) {
                         <span>${formatDate(order.orderDate)}</span>
                     </div>
                     ` : ''}
+                    ${order.time ? `
+                    <div class="order-detail-item">
+                        <strong>Время работы:</strong>
+                        <span>${formatTimeFromString(order.time)}</span>
+                    </div>
+                    ` : ''}
                     <div class="order-detail-item">
                         <strong>Исполнитель:</strong>
                         <span>${order.customerName}</span>
@@ -1121,6 +1203,7 @@ function editOrder(id, orderNumber = null) {
     document.getElementById('orderNumber').value = order.orderNumber;
     document.getElementById('customerName').value = order.customerName;
     document.getElementById('orderDate').value = order.orderDate || '';
+    document.getElementById('orderTime').value = order.time || '';
     document.getElementById('orderStatus').value = order.status;
     
     if (order.squares) {
@@ -1717,6 +1800,7 @@ function exportToExcel() {
                 'Номер заказа',
                 'Исполнитель',
                 'Статус',
+                'Время работы',
                 'Краска (м²)',
                 'Шпон (м²)',
                 'Плёнка (м²)',
@@ -1728,6 +1812,7 @@ function exportToExcel() {
             let totalShpon = 0;
             let totalPlyonka = 0;
             let totalSquares = 0;
+            let totalTimeMinutes = 0;
             
             monthOrders.forEach(order => {
                 const paint = order.squares?.paint || 0;
@@ -1740,11 +1825,19 @@ function exportToExcel() {
                 totalPlyonka += plyonka;
                 totalSquares += orderTotal;
                 
+                if (order.time) {
+                    const parsed = parseTime(order.time);
+                    if (parsed) {
+                        totalTimeMinutes += parsed.totalMinutes;
+                    }
+                }
+                
                 worksheetData.push([
                     order.orderDate ? formatDate(order.orderDate) : '',
                     order.orderNumber || '',
                     order.customerName || '',
                     order.status || '',
+                    order.time ? formatTimeFromString(order.time) : '',
                     paint > 0 ? paint.toFixed(2) : '',
                     shpon > 0 ? shpon.toFixed(2) : '',
                     plyonka > 0 ? plyonka.toFixed(2) : '',
@@ -1754,11 +1847,16 @@ function exportToExcel() {
             
             worksheetData.push([]);
             
+            const totalHours = Math.floor(totalTimeMinutes / 60);
+            const totalMinutesRem = totalTimeMinutes % 60;
+            const totalTimeStr = `${totalHours}:${String(totalMinutesRem).padStart(2, '0')}`;
+            
             worksheetData.push([
                 'ИТОГО:',
                 monthOrders.length,
                 '',
                 '',
+                totalTimeMinutes > 0 ? totalTimeStr : '',
                 totalPaint > 0 ? totalPaint.toFixed(2) : '',
                 totalShpon > 0 ? totalShpon.toFixed(2) : '',
                 totalPlyonka > 0 ? totalPlyonka.toFixed(2) : '',
@@ -1773,6 +1871,10 @@ function exportToExcel() {
                 { wch: 20 },
                 { wch: 12 },
                 { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 18 }
             ];
             
             let sheetName = monthKey;
