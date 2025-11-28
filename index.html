@@ -8,7 +8,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-    <!-- Модальное окно аутентификации -->
     <div id="authModal" class="auth-modal">
         <div class="auth-modal-content">
             <h2>Доступ к редактированию</h2>
@@ -108,7 +107,6 @@
                         <div class="calendar-selected-range" id="selectedRange"></div>
                     </div>
                     
-                    <!-- Виджет выбора месяцев -->
                     <div id="monthPicker" class="month-picker" style="display: none;">
                         <div class="picker-header">
                             <button type="button" class="calendar-back-btn" id="backToDaysFromMonths" title="Вернуться к дням">← Дни</button>
@@ -120,7 +118,6 @@
                         <div class="calendar-selected-range" id="monthSelectedRange"></div>
                     </div>
                     
-                    <!-- Виджет выбора годов -->
                     <div id="yearPicker" class="year-picker" style="display: none;">
                         <div class="picker-header">
                             <button type="button" class="calendar-back-btn" id="backToMonthsFromYears" title="Вернуться к месяцам">← Месяцы</button>
@@ -160,23 +157,23 @@
         <div class="orders-section">
             <div class="orders-header">
                 <h2>Список заказов</h2>
-                <button type="button" class="btn btn-danger" id="clearAllBtn">Очистить всё</button>
+                <div class="header-buttons">
+                    <button type="button" class="btn btn-secondary" id="exportExcelBtn">Экспорт в Excel</button>
+                    <button type="button" class="btn btn-danger" id="clearAllBtn">Очистить всё</button>
+                </div>
             </div>
             <div class="search-bar">
                 <input type="text" id="searchInput" placeholder="Поиск по номеру, имени или статусу...">
             </div>
             <div id="ordersList" class="orders-list">
-                <!-- Заказы будут добавлены сюда динамически -->
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK для Realtime Database -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
         
-        // Конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAX9VuMmBADg8ZFrLuVlTl5T704VqVrff8",
             authDomain: "server-shkaful.firebaseapp.com",
@@ -188,11 +185,9 @@
             measurementId: "G-1QGT7G301S"
         };
         
-        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
         
-        // Экспортируем функции в глобальную область видимости для использования в script.js
         window.firebaseDatabase = database;
         window.firebaseRef = ref;
         window.firebaseSet = set;
@@ -203,7 +198,6 @@
         console.log('✅ Firebase инициализирован');
         console.log('Database URL:', firebaseConfig.databaseURL);
         
-        // Уведомляем, что Firebase готов
         window.dispatchEvent(new Event('firebaseReady'));
     </script>
     
