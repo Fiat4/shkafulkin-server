@@ -97,6 +97,14 @@ function filterOrdersByDateRange(fromDate, toDate) {
     });
 }
 
+function filterOrdersBySingleDate(date) {
+    if (!date) return orders;
+    return orders.filter(order => {
+        if (!order.orderDate) return false;
+        return order.orderDate === date;
+    });
+}
+
 function filterOrdersByMonthRange(fromMonth, toMonth) {
     if (!fromMonth || !toMonth) return orders;
     return orders.filter(order => {
@@ -170,6 +178,15 @@ function renderDays() {
     for (let i = 0; i < startingDayOfWeek; i++) {
         const emptyDay = document.createElement('div');
         emptyDay.className = 'calendar-day empty';
+        // Добавляем обработчик клика на пустую область для сброса
+        emptyDay.addEventListener('click', () => {
+            if (calendarState.startDate || calendarState.endDate) {
+                calendarState.startDate = null;
+                calendarState.endDate = null;
+                updateStatistics();
+                renderDays();
+            }
+        });
         calendarDays.appendChild(emptyDay);
     }
     
@@ -181,17 +198,24 @@ function renderDays() {
         const currentDate = new Date(calendarState.currentYear, calendarState.currentMonth, day);
         const dateString = formatDateForInput(currentDate);
         if (calendarState.startDate && calendarState.endDate) {
-            if (dateString >= calendarState.startDate && dateString <= calendarState.endDate) {
-                dayElement.classList.add('in-range');
+            if (calendarState.startDate === calendarState.endDate) {
+                // Один день выбран
+                if (dateString === calendarState.startDate) {
+                    dayElement.classList.add('start-date');
+                    dayElement.classList.add('end-date');
+                }
+            } else {
+                // Диапазон выбран
+                if (dateString >= calendarState.startDate && dateString <= calendarState.endDate) {
+                    dayElement.classList.add('in-range');
+                }
+                if (dateString === calendarState.startDate) {
+                    dayElement.classList.add('start-date');
+                }
+                if (dateString === calendarState.endDate) {
+                    dayElement.classList.add('end-date');
+                }
             }
-            if (dateString === calendarState.startDate) {
-                dayElement.classList.add('start-date');
-            }
-            if (dateString === calendarState.endDate) {
-                dayElement.classList.add('end-date');
-            }
-        } else if (calendarState.startDate && dateString === calendarState.startDate) {
-            dayElement.classList.add('start-date');
         }
         
         dayElement.addEventListener('click', () => selectDate(dateString));
@@ -202,16 +226,39 @@ function renderDays() {
 }
 
 function selectDate(dateString) {
-    if (!calendarState.startDate || (calendarState.startDate && calendarState.endDate)) {
+    if (calendarState.startDate && calendarState.endDate) {
+        if (dateString === calendarState.startDate || dateString === calendarState.endDate) {
+            calendarState.startDate = null;
+            calendarState.endDate = null;
+            updateStatistics();
+            renderDays();
+            return;
+        }
+    } else if (calendarState.startDate && !calendarState.endDate) {
+        if (dateString === calendarState.startDate) {
+            calendarState.startDate = null;
+            calendarState.endDate = null;
+            updateStatistics();
+            renderDays();
+            return;
+        }
+    }
+    
+    if (!calendarState.startDate) {
         calendarState.startDate = dateString;
-        calendarState.endDate = null;
-    } else {
+        calendarState.endDate = dateString;
+        updateStatistics();
+    } else if (calendarState.startDate === calendarState.endDate) {
         if (dateString < calendarState.startDate) {
             calendarState.endDate = calendarState.startDate;
             calendarState.startDate = dateString;
         } else {
             calendarState.endDate = dateString;
         }
+        updateStatistics();
+    } else {
+        calendarState.startDate = dateString;
+        calendarState.endDate = dateString;
         updateStatistics();
     }
     renderDays();
@@ -334,11 +381,11 @@ function updateSelectedRangeDisplay() {
     if (calendarState.startDate && calendarState.endDate) {
         const startFormatted = formatDate(calendarState.startDate);
         const endFormatted = formatDate(calendarState.endDate);
-        selectedRange.textContent = `Выбрано: ${startFormatted} - ${endFormatted}`;
-        selectedRange.style.display = 'block';
-    } else if (calendarState.startDate) {
-        const startFormatted = formatDate(calendarState.startDate);
-        selectedRange.textContent = `Выберите конечную дату`;
+        if (calendarState.startDate === calendarState.endDate) {
+            selectedRange.textContent = `Выбрано: ${startFormatted}`;
+        } else {
+            selectedRange.textContent = `Выбрано: ${startFormatted} - ${endFormatted}`;
+        }
         selectedRange.style.display = 'block';
     } else {
         selectedRange.style.display = 'none';
@@ -429,7 +476,11 @@ function changeYearRange(direction) {
 function updateStatistics() {
     let filteredOrders = orders;
     if (calendarState.startDate && calendarState.endDate) {
-        filteredOrders = filterOrdersByDateRange(calendarState.startDate, calendarState.endDate);
+        if (calendarState.startDate === calendarState.endDate) {
+            filteredOrders = filterOrdersBySingleDate(calendarState.startDate);
+        } else {
+            filteredOrders = filterOrdersByDateRange(calendarState.startDate, calendarState.endDate);
+        }
     } else if (calendarState.startMonth && calendarState.endMonth) {
         filteredOrders = filterOrdersByMonthRange(calendarState.startMonth, calendarState.endMonth);
     } else if (calendarState.startYear && calendarState.endYear) {
@@ -742,6 +793,21 @@ function initializeCalendarAndHandlers() {
     const clearAllBtn = document.getElementById('clearAllBtn');
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', clearAllOrders);
+    }
+    
+    const calendarContainer = document.getElementById('calendarContainer');
+    const calendarDays = document.getElementById('calendarDays');
+    if (calendarDays) {
+        calendarDays.addEventListener('click', (e) => {
+            if (e.target === calendarDays) {
+                if (calendarState.startDate || calendarState.endDate) {
+                    calendarState.startDate = null;
+                    calendarState.endDate = null;
+                    updateStatistics();
+                    renderDays();
+                }
+            }
+        });
     }
 }
 
