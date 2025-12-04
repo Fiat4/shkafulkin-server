@@ -177,6 +177,15 @@
             <div class="search-bar">
                 <input type="text" id="searchInput" placeholder="Поиск по номеру, имени или статусу...">
             </div>
+            <div class="sort-bar">
+                <label for="sortSelect">Сортировка:</label>
+                <select id="sortSelect" class="sort-select">
+                    <option value="number">По номеру заказа</option>
+                    <option value="customer">По исполнителю</option>
+                    <option value="status">По статусу</option>
+                    <option value="squares">По объёму (м²)</option>
+                </select>
+            </div>
             <div id="ordersList" class="orders-list">
             </div>
         </div>
