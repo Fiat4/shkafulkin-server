@@ -2,6 +2,7 @@ let orders = JSON.parse(localStorage.getItem('orders')) || [];
 let editingOrderId = null;
 
 let isSyncing = false;
+let sortType = 'number'; // По умолчанию сортировка по номеру заказа
 let calendarState = {
     currentMonth: new Date().getMonth(),
     currentYear: new Date().getFullYear(),
@@ -310,7 +311,6 @@ function selectDate(dateString) {
     if (!calendarState.startDate) {
         calendarState.startDate = dateString;
         calendarState.endDate = dateString;
-        updateStatistics();
     } else if (calendarState.startDate === calendarState.endDate) {
         if (dateString < calendarState.startDate) {
             calendarState.endDate = calendarState.startDate;
@@ -318,12 +318,11 @@ function selectDate(dateString) {
         } else {
             calendarState.endDate = dateString;
         }
-        updateStatistics();
     } else {
         calendarState.startDate = dateString;
         calendarState.endDate = dateString;
-        updateStatistics();
     }
+    updateStatistics();
     renderDays();
 }
 
@@ -536,7 +535,7 @@ function changeYearRange(direction) {
 }
 
 
-function updateStatistics() {
+function getFilteredOrdersByDate() {
     let filteredOrders = orders;
     if (calendarState.startDate && calendarState.endDate) {
         if (calendarState.startDate === calendarState.endDate) {
@@ -553,9 +552,27 @@ function updateStatistics() {
             return orderYear >= calendarState.startYear && orderYear <= calendarState.endYear;
         });
     }
-    
+    return filteredOrders;
+}
+
+function updateStatistics() {
+    const filteredOrders = getFilteredOrdersByDate();
     const stats = calculateStatistics(filteredOrders);
     displayStatistics(stats);
+    
+    // Обновляем список заказов с учетом выбранных дат
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    if (searchTerm === '') {
+        renderOrders(filteredOrders);
+    } else {
+        // Если есть поисковый запрос, фильтруем и по датам, и по поиску
+        const searchFiltered = filteredOrders.filter(order => 
+            order.orderNumber.toString().includes(searchTerm) ||
+            order.customerName.toLowerCase().includes(searchTerm) ||
+            order.status.toLowerCase().includes(searchTerm)
+        );
+        renderOrders(searchFiltered);
+    }
 }
 
 const AUTH_PASSWORD_HASH = '189eb066f73b1fa3cae1eff724e4d0093186c2362ed123cd516310b9c5fd315e';
@@ -673,7 +690,6 @@ function initializeAppData() {
             console.warn('Firebase не доступен, используем localStorage');
             orders = JSON.parse(localStorage.getItem('orders')) || [];
             fixDuplicateIds();
-            renderOrders();
             updateStatistics();
         }
     };
@@ -730,6 +746,36 @@ function initializeCalendarAndHandlers() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
+    }
+    
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        // Загружаем сохранённый тип сортировки из localStorage
+        const savedSortType = localStorage.getItem('orderSortType');
+        if (savedSortType) {
+            sortType = savedSortType;
+            sortSelect.value = savedSortType;
+        }
+        
+        sortSelect.addEventListener('change', (e) => {
+            sortType = e.target.value;
+            localStorage.setItem('orderSortType', sortType);
+            
+            // Применяем сортировку к текущему списку заказов
+            const filteredOrders = getFilteredOrdersByDate();
+            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            
+            let ordersToSort = filteredOrders;
+            if (searchTerm !== '') {
+                ordersToSort = filteredOrders.filter(order => 
+                    order.orderNumber.toString().includes(searchTerm) ||
+                    order.customerName.toLowerCase().includes(searchTerm) ||
+                    order.status.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            renderOrders(ordersToSort);
+        });
     }
     
     const prevMonth = document.getElementById('prevMonth');
@@ -962,7 +1008,6 @@ function handleFormSubmit(e) {
     }
     
     saveOrders();
-    renderOrders();
     updateStatistics();
     orderForm.reset();
     setDefaultDate();
@@ -1001,7 +1046,6 @@ function loadOrdersFromFirebase() {
         console.log('Firebase не доступен, загружаем из localStorage');
         orders = JSON.parse(localStorage.getItem('orders')) || [];
         fixDuplicateIds();
-        renderOrders();
         updateStatistics();
         return;
     }
@@ -1019,21 +1063,18 @@ function loadOrdersFromFirebase() {
             console.log('Загружаем заказы из Firebase...');
             orders = Object.values(firebaseOrders);
             fixDuplicateIds();
-            renderOrders();
             updateStatistics();
             localStorage.setItem('orders', JSON.stringify(orders));
         } else {
             console.log('В Firebase нет данных, загружаем из localStorage');
             orders = JSON.parse(localStorage.getItem('orders')) || [];
             fixDuplicateIds();
-            renderOrders();
             updateStatistics();
         }
     }, (error) => {
         console.error('Ошибка загрузки из Firebase:', error);
         orders = JSON.parse(localStorage.getItem('orders')) || [];
         fixDuplicateIds();
-        renderOrders();
         updateStatistics();
     });
 }
@@ -1084,10 +1125,56 @@ function clearAllOrders() {
     
     localStorage.removeItem('orders');
     
-    renderOrders();
     updateStatistics();
     
     alert(`Все заказы (${orderCount} шт.) успешно удалены.`);
+}
+
+function sortOrders(ordersToSort) {
+    const sorted = [...ordersToSort];
+    
+    switch (sortType) {
+        case 'number':
+            return sorted.sort((a, b) => a.orderNumber - b.orderNumber);
+        
+        case 'customer':
+            return sorted.sort((a, b) => {
+                const nameA = (a.customerName || '').toLowerCase();
+                const nameB = (b.customerName || '').toLowerCase();
+                if (nameA < nameB) return -1;
+                if (nameA > nameB) return 1;
+                return a.orderNumber - b.orderNumber; // Если имена одинаковые, сортируем по номеру
+            });
+        
+        case 'status':
+            return sorted.sort((a, b) => {
+                const statusA = (a.status || '').toLowerCase();
+                const statusB = (b.status || '').toLowerCase();
+                if (statusA < statusB) return -1;
+                if (statusA > statusB) return 1;
+                return a.orderNumber - b.orderNumber; // Если статусы одинаковые, сортируем по номеру
+            });
+        
+        case 'squares':
+            return sorted.sort((a, b) => {
+                const getTotalSquares = (order) => {
+                    if (!order.squares) return 0;
+                    const paint = order.squares.paint || 0;
+                    const shpon = order.squares.shpon || 0;
+                    const plyonka = order.squares.plyonka || 0;
+                    return paint + shpon + plyonka;
+                };
+                const squaresA = getTotalSquares(a);
+                const squaresB = getTotalSquares(b);
+                if (squaresB !== squaresA) {
+                    return squaresB - squaresA; // По убыванию (больше квадратов сначала)
+                }
+                return a.orderNumber - b.orderNumber; // Если квадраты одинаковые, сортируем по номеру
+            });
+        
+        default:
+            return sorted.sort((a, b) => a.orderNumber - b.orderNumber);
+    }
 }
 
 function renderOrders(filteredOrders = null) {
@@ -1103,7 +1190,7 @@ function renderOrders(filteredOrders = null) {
         return;
     }
     
-    const sortedOrders = [...ordersToRender].sort((a, b) => a.orderNumber - b.orderNumber);
+    const sortedOrders = sortOrders(ordersToRender);
     
     ordersList.innerHTML = sortedOrders.map(order => `
         <div class="order-card">
@@ -1280,7 +1367,6 @@ function markAsReady(id, orderNumber = null) {
         
         order.status = 'готов';
         saveOrders();
-        renderOrders();
         updateStatistics();
         
         console.log('Статус изменен на "готов" для заказа:', order.orderNumber);
@@ -1337,7 +1423,6 @@ function deleteOrder(id, orderNumber = null) {
             });
         }
         
-        renderOrders();
         updateStatistics();
         
         if (editingOrderId === id || Number(editingOrderId) === Number(id) || String(editingOrderId) === String(id)) {
@@ -1352,18 +1437,22 @@ function deleteOrder(id, orderNumber = null) {
 function handleSearch(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     
+    // Сначала получаем заказы, отфильтрованные по датам
+    let filteredOrders = getFilteredOrdersByDate();
+    
     if (searchTerm === '') {
-        renderOrders();
+        renderOrders(filteredOrders);
         return;
     }
     
-    const filteredOrders = orders.filter(order => 
+    // Затем фильтруем по поисковому запросу
+    const searchFiltered = filteredOrders.filter(order => 
         order.orderNumber.toString().includes(searchTerm) ||
         order.customerName.toLowerCase().includes(searchTerm) ||
         order.status.toLowerCase().includes(searchTerm)
     );
     
-    renderOrders(filteredOrders);
+    renderOrders(searchFiltered);
 }
 
 orderForm.addEventListener('reset', () => {
@@ -1472,7 +1561,6 @@ function handleExcelImport(event) {
             });
             
             saveOrders();
-            renderOrders();
             updateStatistics();
             
             alert(`Импорт завершен!\n\nИмпортировано: ${importedCount}\nПропущено (дубликаты): ${skippedCount}`);
